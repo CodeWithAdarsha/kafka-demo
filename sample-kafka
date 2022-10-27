@@ -3,7 +3,7 @@ version: "3"
 services:
   # zookeeper ,TwoNode i.e znode-one ,znode-two
   znode-one:
-    image: wurstmeister/zookeeper:latest
+    image: zookeeper:latest
     container_name: zNode-1
     restart: unless-stopped
     ports:
@@ -19,14 +19,17 @@ services:
       ZOOKEEPER_TICK_TIME: 2000 # Required these 3 to keep elect leader zookeeper in case multi cluster env
       ZOOKEEPER_INIT_LIMIT: 5
       ZOOKEEPER_SYNC_LIMIT: 2
-      #KAFKA_JMX_OPTS: '-Djava.rmi.server.hostname=127.0.0.1 -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=10020 -Dcom.sun.management.jmxremote.rmi.port=10021 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
+      KAFKA_OPTS: '-Djute.maxbuffer=11957258560 -Djava.rmi.server.hostname=x.x.x.x -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=10020 -Dcom.sun.management.jmxremote.rmi.port=10021 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
       KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
-      KAFKA_JMX_HOSTNAME: 0.0.0.0
+      # KAFKA_JMX_HOSTNAME: 0.0.0.0
       KAFKA_JMX_PORT: 10020
-      ZOOKEEPER_SASL_ENABLED: 'false'
+      ZOOKEEPER_SASL_ENABLED: "false"
+    networks:
+      monitoring:
+
 
   znode-two:
-    image: wurstmeister/zookeeper:latest
+    image: zookeeper:latest
     container_name: zNode-2
     restart: unless-stopped
     ports:
@@ -41,12 +44,14 @@ services:
       ZOOKEEPER_SERVER_ID: 2
       ZOOKEEPER_TICK_TIME: 2000
       ZOOKEEPER_INIT_LIMIT: 5
-      ZOOKEEPER_SYNC_LIMIT: 2
-      #KAFKA_JMX_OPTS: '-Djava.rmi.server.hostname=127.0.0.1 -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=10020 -Dcom.sun.management.jmxremote.rmi.port=10021 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
+      ZOOKEEPER_SYNC_LIMIT: 2 1195725856
+      KAFKA_OPTS: '-Djute.maxbuffer=11957258560 -Djava.rmi.server.hostname=x.x.x.x -Dcom.sun.management.jmxremote=true -Dcom.sun.management.jmxremote.port=10020 -Dcom.sun.management.jmxremote.rmi.port=10021 -Dcom.sun.management.jmxremote.local.only=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false'
       KAFKA_HEAP_OPTS: "-Xmx512M -Xms512M"
-      KAFKA_JMX_HOSTNAME: 0.0.0.0
+      # KAFKA_JMX_HOSTNAME: 0.0.0.0
       KAFKA_JMX_PORT: 10022
-      ZOOKEEPER_SASL_ENABLED: 'false'
+      ZOOKEEPER_SASL_ENABLED: "false"
+    networks:
+      monitoring:
 
 
   kafka1:
@@ -62,6 +67,7 @@ services:
       - "10030:10030"
       - "10031:10031"
     environment:
+      # KAFKA_LOG_DIRS: /kafka/logs
       KAFKA_BROKER_ID: 1
       KAFKA_ADVERTISED_HOST_NAME: kafka1
       KAFKA_ZOOKEEPER_CONNECT: znode-one:2181,znode-two:2182
@@ -82,6 +88,7 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
       KAFKA_NUM_PARTITIONS: 20
       KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 15
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_LOG_RETENTION_HOURS: 3
       KAFKA_LOG_ROLL_HOURS: 1
@@ -89,8 +96,10 @@ services:
       KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
       # JMX Settings.
       KAFKA_JMX_HOSTNAME: 0.0.0.0
-      KAFKA_JMX_PORT: 10030
-      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1 -Dcom.sun.management.jmxremote.rmi.port=1099"
+      KAFKA_JMX_PORT: 10102
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote.port=10102 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
+    networks:
+      monitoring:
 
 
   kafka2:
@@ -106,6 +115,7 @@ services:
       - "10032:10032"
       - "10033:10033"
     environment:
+      # KAFKA_LOG_DIRS: /kafka/logs
       KAFKA_BROKER_ID: 2
       KAFKA_ADVERTISED_HOST_NAME: kafka2
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka2:29094,EXTERNAL://localhost:9094
@@ -126,44 +136,50 @@ services:
       KAFKA_DEFAULT_REPLICATION_FACTOR: 2
       KAFKA_NUM_PARTITIONS: 20
       KAFKA_OFFSETS_TOPIC_NUM_PARTITIONS: 15  # The number of partitions for the offset commit topic, "__consumer_offsets"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 2
       KAFKA_DELETE_TOPIC_ENABLE: "true"
       KAFKA_LOG_RETENTION_HOURS: 3
       KAFKA_LOG_ROLL_HOURS: 1
       KAFKA_SASL_ENABLED_MECHANISMS: PLAIN
       KAFKA_SASL_MECHANISM_INTER_BROKER_PROTOCOL: PLAIN
       KAFKA_JMX_HOSTNAME: 0.0.0.0
-      KAFKA_JMX_PORT: 10030
-      KAFKA_JMX_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.ssl=false -Djava.rmi.server.hostname=127.0.0.1 -Dcom.sun.management.jmxremote.rmi.port=1099"
+      JMX_PORT: 10101
+      KAFKA_JMX_OPTS: -Dcom.sun.management.jmxremote.port=10101 -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false
+    networks:
+      monitoring:
 
 
-  schema-registry:
-    image: confluentinc/cp-schema-registry:latest
-    hostname: schema-registry
-    container_name: schema-registry
-    restart: unless-stopped
-    ports:
-      - "8081:8081"
-    environment:
-      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:29092,PLAINTEXT://kafka1:29094
-      SCHEMA_REGISTRY_HOST_NAME: kafka-schema-registry
-      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
-      SCHEMA_REGISTRY_AVRO_COMPATIBILITY_LEVEL: 'backward'
-      # SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
-    depends_on:
-      - znode-two
-      - znode-one
-      - kafka2
-      - kafka1
 
-  schema-registry-ui:
-     image: landoop/schema-registry-ui:latest
-     container_name: schema-registry-ui
-     restart: unless-stopped
-     network_mode: bridge
-     ports:
-        - 8000:8000
-     environment:
-       SCHEMAREGISTRY_URL: 'http://192.0.2.11:8081'
+  #  schema-registry:
+#    image: confluentinc/cp-schema-registry:latest
+#    hostname: schema-registry
+#    container_name: schema-registry
+#    restart: unless-stopped
+#    ports:
+#      - "8081:8081"
+#    environment:
+#      SCHEMA_REGISTRY_KAFKASTORE_BOOTSTRAP_SERVERS: PLAINTEXT://kafka1:29092,PLAINTEXT://kafka1:29094
+#      SCHEMA_REGISTRY_HOST_NAME: kafka-schema-registry
+#      SCHEMA_REGISTRY_LISTENERS: http://0.0.0.0:8081
+#      SCHEMA_REGISTRY_AVRO_COMPATIBILITY_LEVEL: 'backward'
+#      # SCHEMA_REGISTRY_KAFKASTORE_TOPIC_REPLICATION_FACTOR: 1
+#    depends_on:
+#      - znode-two
+#      - znode-one
+#      - kafka2
+#      - kafka1
+#
+#  schema-registry-ui:
+#     image: landoop/schema-registry-ui:latest
+#     container_name: schema-registry-ui
+#     restart: unless-stopped
+#     network_mode: bridge
+#     depends_on:
+#       - schema-registry
+#     ports:
+#        - 8000:8000
+#     environment:
+#       SCHEMAREGISTRY_URL: 'http://x.x.x.x:8081'
 
 #  rest-proxy:
 #    image: confluentinc/cp-kafka-rest:latest
@@ -183,13 +199,13 @@ services:
 #        KAFKA_REST_SCHEMA_REGISTRY_URL: "http://localhost:8081"
 #        KAFKA_REST_HOST_NAME: rest-proxy
 #        KAFKA_REST_BOOTSTRAP_SERVERS: "kafka1:29092,kafka2:29094"
-#        #KAFKA_REST_ZOOKEEPER_CONNECT: '192.0.2.21:2181,192.0.2.22:2181,192.0.2.23:2181'
+#        #KAFKA_REST_ZOOKEEPER_CONNECT: 'x.x.x.x:abc'
 #        KAFKA_REST_DEBUG: "true"
 
 
   #kafdrop for topic/msg visualization
 #  kafdrop:
-#    image: obsidiandynamics/kafdrop
+#    image: obsidiandynamics/kafdrop:latest
 #    container_name: kafka-ui
 #    restart: "on-failure"
 #    depends_on:
@@ -198,23 +214,133 @@ services:
 #      - znode-one
 #      - znode-two
 #    ports:
-#      - "9000:9000"
+#      - "9001:9000"  # --spring.management.port=xx
 #    environment:
 #      KAFKA_BROKERCONNECT: "kafka1:29092,kafka2:29094"
 #      JVM_OPTS: "-Xms16M -Xmx512M -Xss180K -XX:-TieredCompilation -XX:+UseStringDeduplication -noverify"
+#      SERVER_PORT:
+#    command:
+#      - '--spring.management.port=1001'
 
-  kafka_manager:
-    image: hlebalbau/kafka-manager:2.0.0.2
-    container_name: kafka-manager
-    restart: unless-stopped
-    hostname: kafka-manager
-    network_mode: bridge
+  kafka-manager:
+    image: hlebalbau/kafka-manager:stable
+    container_name: k-manager-ui
+    restart: always
+    depends_on:
+      - znode-two
+      - znode-one
+      - kafka2
+      - kafka1
     ports:
-      - 9000:9000
+      - "9001:9001"
     environment:
-      ZK_HOSTS: 'znode-one:2181,znode-two:2182'
-      APPLICATION_SECRET: secret
-    command: -Dpidfile.path=/dev/null
+      ZK_HOSTS: "znode-one:2181,znode-two:2182"
+      APPLICATION_SECRET: "random"
+    command:
+      - -Dpidfile.path=/dev/null
+      - -Dhttp.port=9001
+    networks:
+      monitoring:
 
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:latest
+    container_name: kafka-exporter
+    restart: unless-stopped
+    hostname: localhost
+    ports:
+      - 9308:9308
+    command: --kafka.server=kafka1:9092 --kafka.server=kafka2:9094 --log.level=debug --log.enable-sarama
+    links:
+      - kafka2
+      - kafka1
+      - znode-two
+      - znode-one
+    networks:
+      monitoring:
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: always
+    container_name: prometheus
+    hostname: localhost
+    ports:
+      - "9090:9090"
+    depends_on:
+      - alertmanager
+    volumes:
+      - type: bind
+        source: ./prometheus
+        target: /etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+#      - '--storage.agent.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+#      - '--enable-feature=agent'
+    networks:
+      monitoring:
+
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: always
+    hostname: localhost
+    ports:
+      - "9093:9093"
+    volumes:
+      - type: bind
+        source: ./alertmanager
+        target: /etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+    networks:
+      monitoring:
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana-ui
+    hostname: localhost
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - ./grafana:/etc/grafana/provisioning/datasources
+      - grafana-data:/var/lib/grafana
+
+  node-exporter:
+    image: bitnami/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    hostname: localhost
+    ports:
+      - "9100:9100"
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    networks:
+      monitoring:
+
+volumes:
+  prometheus-data:
+  alertmanager-data:
+  grafana-data:
+
+networks:
+  monitoring:
+    driver: bridge
 
 # https://github.com/robcowart/docker_compose_cookbook/blob/master/confluent_kafka_oss/docker-compose.yml
+
+# http://localhost:9000/alerts   ==> Prom
+# http://localhost:3000/         ==> Grafana
+# http://localhost:9308/metrics  ==> Node Export
+# http://localhost:9093/#/alerts ==> Alert-Ma
